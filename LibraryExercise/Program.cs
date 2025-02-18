@@ -7,20 +7,6 @@ namespace Library
     static void Main(string[] args)
     {
       UI.Run();
-      // Console.WriteLine("Starting program!");
-      // Book x = new Book("hoi", "Thom", "12-34", 2000, "non-fictie biografie");
-      // var y = new Book("hallo", "Hans", "21-43", 2001, "fictie horror");
-      // var z = new Book("de grote boze wolf", "Harrie", "43-21", 2002, "fictie fantasy");
-
-      // var test = new EBook(title: "1984", author: "Orwell", isbn: "12345", publicationYear: 1950, genre: "fictie", fileSize: 64);
-
-      // Library library = new Library();
-      // library.AddBook(x);
-      // library.AddBook(y);
-      // library.AddBook(z);
-      // library.AddBook(test);
-      // library.ListBooks();
-      // Console.WriteLine("Closing program!");
     }
   }
 
@@ -81,7 +67,7 @@ namespace Library
           break;
         case "2":
           Console.WriteLine("Enter the isbn of the book you want to remove: ");
-          library.RemoveBook(isbn: Console.ReadLine()?? "");
+          library.RemoveBook(isbn: Console.ReadLine() ?? "");
           break;
         case "3":
           Console.WriteLine("Enter your search query: ");
@@ -258,7 +244,7 @@ namespace Library
     public void AddBook(Book book)
     {
       Books.Add(book);
-      Console.WriteLine($"successfully added book ${book.title} to the library");
+      Console.WriteLine($"successfully added book {book.title} to the library");
     }
 
     /// <summary>
@@ -371,7 +357,12 @@ namespace Library
         }
       }
     }
-
+    /// <summary>
+    /// Compares two books based on their their Author
+    /// </summary>
+    /// <param name="bookX"></param>
+    /// <param name="bookY"></param>
+    /// <returns></returns>
     public static int CompareBooksByAuthor(Book bookX, Book bookY)
     {
       // check for null first
@@ -403,7 +394,12 @@ namespace Library
         }
       }
     }
-
+    /// <summary>
+    /// Compares two books based on their publication year
+    /// </summary>
+    /// <param name="bookX"></param>
+    /// <param name="bookY"></param>
+    /// <returns></returns>
     public static int CompareBooksByPublicationYear(Book bookX, Book bookY)
     {
       // check for null first

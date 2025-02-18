@@ -23,3 +23,4 @@ c:\Users\ThomHoogmoed\Documents\GitHub\LibraryExercise\LibraryExercise\obj\Debug
 c:\Users\ThomHoogmoed\Documents\GitHub\LibraryExercise\LibraryExercise\obj\Debug\net8.0\test.pdb
 c:\Users\ThomHoogmoed\Documents\GitHub\LibraryExercise\LibraryExercise\obj\Debug\net8.0\test.genruntimeconfig.cache
 c:\Users\ThomHoogmoed\Documents\GitHub\LibraryExercise\LibraryExercise\obj\Debug\net8.0\ref\test.dll
+c:\Users\ThomHoogmoed\Documents\GitHub\LibraryExercise\LibraryExercise\obj\Debug\net8.0\test.sourcelink.json
