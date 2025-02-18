@@ -1,5 +1,6 @@
-using System;
-using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+
 namespace Library
 {
   class Program
@@ -18,7 +19,33 @@ namespace Library
   {
     /// This variable keeps track of whether the program is running
     static bool running = true;
-    static readonly Library library = new();
+    static Library library;
+
+    /// <summary>
+    /// This method runs the program
+    /// </summary>
+    public static void Run()
+    {
+      bool loggedIn = false;
+      while(!loggedIn){
+        // TODO: Implement login
+        // int authenticationOption = AuthenticationManager.GetAuthenticationOptionFromUserInput();
+        // switch (authenticationOption)
+        // {
+        //   case 1:
+      }
+
+      library = LoadLibrary();
+      library ??= new Library();
+
+      while (running)
+      {
+        DisplayMenu();
+        GetUserInput();
+      }
+      SaveLibrary();
+      Exit();
+    }
 
     /// <summary>
     /// This method displays the menu
@@ -42,16 +69,63 @@ namespace Library
       Environment.Exit(0);
     }
 
-    public static void Run()
+    /// <summary>
+    /// This method saves the library to a file
+    /// Throws an exception if an error occurs while saving the library
+    /// </summary>
+    public static void SaveLibrary()
     {
-
-      while (running)
+      try
       {
-        DisplayMenu();
-        GetUserInput();
+        // Save the library to a file
+        Console.WriteLine("Saving library");
+        string fileName = "libraryData.json";
+        string jsonString = JsonSerializer.Serialize(library);
+        // Console.WriteLine(jsonString);
+        File.WriteAllText(fileName, jsonString);
+        Console.WriteLine("Library saved");
       }
-      Exit();
+      catch (Exception e)
+      {
+        Console.WriteLine("An error occured while saving the library");
+        Console.WriteLine(e.Message);
+      }
     }
+
+    /// <summary>
+    /// This method loads the library from a file
+    /// Throws an exception if an error occurs while loading the library
+    /// </summary>
+    public static Library LoadLibrary()
+    {
+      try
+      {
+        // Load the library from a file
+        Console.WriteLine("Loading library");
+        string fileName = "libraryData.json";
+        if (File.Exists(fileName) == false)
+        {
+          Console.WriteLine("No library data found");
+          return new Library();
+        }
+        string jsonString = File.ReadAllText(fileName);
+        if (jsonString == "")
+        {
+          Console.WriteLine("No library data found");
+          return new Library();
+        }
+        library = JsonSerializer.Deserialize<Library>(jsonString);
+        Console.WriteLine("Library loaded");
+        return library;
+      }
+      catch (Exception e)
+      {
+        Console.WriteLine("An error occured while loading the library");
+        Console.WriteLine(e.Message);
+        return null;
+      }
+    }
+
     /// <summary>
     /// This method gets the user input and calls the method that corresponds to the input
     /// </summary>
@@ -78,6 +152,7 @@ namespace Library
           }
           else
           {
+            Console.WriteLine($"Books found matching the query: {foundBooks.Count}");
             foreach (Book book in foundBooks)
             {
               book.DisplayDetails();
@@ -179,6 +254,10 @@ namespace Library
       Console.WriteLine("3. Sort by publication year");
     }
 
+    /// <summary>
+    /// This method gets a valid sorting option from the user
+    /// </summary>
+    /// <returns></returns>
     public static int GetValidSortingOption()
     {
       bool validSortingOption = false;
@@ -201,37 +280,12 @@ namespace Library
     }
   }
 
-
-  interface IReadable
-  {
-    void Read();
-  }
-
-  /// <summary>
-  /// Class representing an ebook, extends the book class
-  /// </summary>
-  /// <param name="title"></param>
-  /// <param name="author"></param>
-  /// <param name="isbn"></param>
-  /// <param name="publicationYear"></param>
-  /// <param name="genre"></param>
-  /// <param name="fileSize"></param>
-  class EBook(string title, string author, string isbn, int publicationYear, string genre, int fileSize) : Book(title, author, isbn, publicationYear, genre)
-  {
-    public int fileSize = fileSize;
-
-    public override void DisplayDetails()
-    {
-      Console.WriteLine($"{title} by {author} is a {genre} type book published in {publicationYear} with isbn {isbn}, its filesize is {fileSize}mb");
-    }
-  }
-
   /// <summary>
   /// Class representing a library
   /// </summary>
   class Library
   {
-    List<Book> Books;
+    public List<Book> Books { get; set; }
     public Library()
     {
       Books = [];
@@ -244,7 +298,7 @@ namespace Library
     public void AddBook(Book book)
     {
       Books.Add(book);
-      Console.WriteLine($"successfully added book {book.title} to the library");
+      Console.WriteLine($"successfully added book {book.Title} to the library");
     }
 
     /// <summary>
@@ -253,23 +307,25 @@ namespace Library
     /// <param name="isbn"></param>
     public void RemoveBook(string isbn)
     {
-      int removedBooks = 0;
-      foreach (Book book in Books)
+      List<int> indexesToRemove = [];
+      for (int i = 0; i < Books.Count; i++)
       {
-        if (book.isbn == isbn)
+        if (Books[i].Isbn == isbn)
         {
-          Books.Remove(book);
-          Console.WriteLine($"successfully removed book {book.DisplayDetails} from the library");
-          removedBooks++;
+          indexesToRemove.Add(i);
         }
       }
-      if (removedBooks == 0)
+      if (indexesToRemove.Count == 0)
       {
         Console.WriteLine("No books found with that isbn, so no books were removed");
       }
       else
       {
-        Console.WriteLine($"successfully removed {removedBooks} books from the library");
+        foreach (int index in indexesToRemove)
+        {
+          Books.RemoveAt(index);
+        }
+        Console.WriteLine($"successfully removed {indexesToRemove.Count} books with isbn {isbn}");
       }
     }
 
@@ -280,15 +336,7 @@ namespace Library
     /// <returns>A list of books matching the query</returns>
     public List<Book>? SearchBooks(string query)
     {
-      List<Book> matches = [];
-      foreach (Book book in Books)
-      {
-        if (book.IsMatch(query))
-        {
-          matches.Add(book);
-        }
-      }
-      return matches;
+      return Books.Where(book => book.IsMatch(query)).ToList();
     }
 
     /// <summary>
@@ -328,10 +376,10 @@ namespace Library
     public static int CompareBooksByTitle(Book bookX, Book bookY)
     {
       // check for null first
-      if (bookX.title == null)
+      if (bookX.Title == null)
       {
         // if both are null, they are the same
-        if (bookY.title == null)
+        if (bookY.Title == null)
         {
           return 0;
         }
@@ -344,14 +392,14 @@ namespace Library
       else
       {
         // if title of x is not null, but y's title is, then x comes first
-        if (bookY.title == null)
+        if (bookY.Title == null)
         {
           return 1;
         }
         // check which title comes first 
         else
         {
-          int result = bookX.title.CompareTo(bookY.title);
+          int result = bookX.Title.CompareTo(bookY.Title);
           return result;
 
         }
@@ -366,10 +414,10 @@ namespace Library
     public static int CompareBooksByAuthor(Book bookX, Book bookY)
     {
       // check for null first
-      if (bookX.author == null)
+      if (bookX.Author == null)
       {
         // if both are null, they are the same
-        if (bookY.author == null)
+        if (bookY.Author == null)
         {
           return 0;
         }
@@ -382,14 +430,14 @@ namespace Library
       else
       {
         // if author of x is not null, but y's author is, then x comes first
-        if (bookY.author == null)
+        if (bookY.Author == null)
         {
           return 1;
         }
         // check which author comes first 
         else
         {
-          int result = bookX.author.CompareTo(bookY.author);
+          int result = bookX.Author.CompareTo(bookY.Author);
           return result;
         }
       }
@@ -403,10 +451,10 @@ namespace Library
     public static int CompareBooksByPublicationYear(Book bookX, Book bookY)
     {
       // check for null first
-      if (bookX.publicationYear == null)
+      if (bookX.PublicationYear == null)
       {
         // if both are null, they are the same
-        if (bookY.publicationYear == null)
+        if (bookY.PublicationYear == null)
         {
           return 0;
         }
@@ -419,19 +467,26 @@ namespace Library
       else
       {
         // if publicationYear of x is not null, but y's publicationYear is, then x comes first
-        if (bookY.publicationYear == null)
+        if (bookY.PublicationYear == null)
         {
           return 1;
         }
         // check which publicationYear comes first 
         else
         {
-          return bookX.publicationYear.CompareTo(bookY.publicationYear);
+          return bookX.PublicationYear.CompareTo(bookY.PublicationYear);
         }
       }
     }
   }
 
+  /// <summary>
+  /// Interface representing a readable object
+  /// </summary>
+  interface IReadable
+  {
+    void Read();
+  }
   /// <summary>
   /// Class representing a book
   /// </summary>
@@ -440,13 +495,23 @@ namespace Library
   /// <param name="isbn"></param>
   /// <param name="publicationYear"></param>
   /// <param name="genre"></param>
-  public class Book(string title, string author, string isbn, int publicationYear, string genre) : IReadable
+  public class Book : IReadable
   {
-    public string title = title;
-    public string author = author;
-    public string isbn = isbn;
-    public int publicationYear = publicationYear;
-    public string genre = genre;
+    public required string Title { get; set; }
+    public required string Author { get; set; }
+    public required string Isbn { get; set; }
+    public required int PublicationYear { get; set; }
+    public required string Genre { get; set; }
+
+    [SetsRequiredMembers]
+    public Book(string title, string author, string isbn, int publicationYear, string genre)
+    {
+      Title = title;
+      Author = author;
+      Isbn = isbn;
+      PublicationYear = publicationYear;
+      Genre = genre;
+    }
 
     /// <summary>
     /// This method checks if the title or autho of the book matches the search query
@@ -456,25 +521,189 @@ namespace Library
     public bool IsMatch(string searchQuery)
     {
       // Convert to lower case to allow search while ignoring capitalization in the query.
-      if (title.ToLower().Contains(searchQuery.ToLower()) || author.ToLower().Contains(searchQuery.ToLower()))
+      if (Title.ToLower().Contains(searchQuery.ToLower()) || Author.ToLower().Contains(searchQuery.ToLower()))
       {
         return true;
       }
       return false;
     }
+
     /// <summary>
     /// This method displays the details of the book
     /// </summary>
     public virtual void DisplayDetails()
     {
-      Console.WriteLine($"{title} by {author} is a {genre} type book published in {publicationYear} with isbn {isbn}");
+      Console.WriteLine($"{Title} by {Author} is a {Genre} book published in {PublicationYear} with isbn {Isbn}");
     }
     /// <summary>
     /// This method reads the book
     /// </summary>
     public void Read()
     {
-      Console.WriteLine($"reading {title} by {author} from {publicationYear}");
+      Console.WriteLine($"reading {Title} by {Author} from {PublicationYear}");
     }
+  }
+
+  /// <summary>
+  /// Class representing an ebook, extends the book class
+  /// </summary>
+  /// <param name="title"></param>
+  /// <param name="author"></param>
+  /// <param name="isbn"></param>
+  /// <param name="publicationYear"></param>
+  /// <param name="genre"></param>
+  /// <param name="fileSize"></param>
+  public class EBook : Book
+  {
+    public int FileSize { get; set; }
+    [SetsRequiredMembers]
+    public EBook(string title, string author, string isbn, int publicationYear, string genre, int fileSize)
+        : base(title, author, isbn, publicationYear, genre)
+    {
+      FileSize = fileSize;
+    }
+    public override void DisplayDetails()
+    {
+      Console.WriteLine($"{Title} by {Author} is a {Genre} type book published in {PublicationYear} with isbn {Isbn}, its filesize is {FileSize}mb");
+    }
+  }
+
+  public class User
+  {
+    public required string UserName { get; set; }
+    public required string Password { get; set; }
+
+    public required string Role { get; set; } = "User";
+    [SetsRequiredMembers]
+    public User(string username, string password)
+    {
+      UserName = username;
+      Password = password;
+    }
+  }
+
+  public class Admin : User
+  {
+    [SetsRequiredMembers]
+    public Admin(string username, string password) : base(username, password)
+    {
+      Role = "Admin";
+    }
+  }
+
+  class AuthenticationManager
+  {
+    public static List<User> Users { get; set; }
+    /// <summary>
+    /// This method initializes the authentication manager by loading the users from a file, 
+    /// if no users are found, it creates the initial admin
+    /// </summary>
+    private void InitializeAuthenticationManager()
+    {
+      Users = LoadUsers();
+      if (Users.Count == 0)
+      {
+        Console.WriteLine("No users found, creating standard admin");
+        CreateInitialAdmin();
+      }
+    }
+
+    /// <summary>
+    /// This method creates the initial admin
+    /// </summary>
+    private void CreateInitialAdmin()
+    {
+      Admin admin = new("admin", "1234");
+      Users.Add(admin);
+    }
+
+    /// <summary>
+    /// This method loads the users from a file
+    /// </summary>
+    /// <returns></returns>
+    public static List<User> LoadUsers()
+    {
+      try
+      {
+        // Load the users from a file
+        Console.WriteLine("Loading users");
+        string fileName = "userData.json";
+        if (File.Exists(fileName) == false)
+        {
+          Console.WriteLine("No file with user data found");
+          return [];
+        }
+        string jsonString = File.ReadAllText(fileName);
+        if (jsonString == "")
+        {
+          Console.WriteLine("No user data found");
+          return [];
+        }
+        List<User>? users = JsonSerializer.Deserialize<List<User>>(jsonString);
+        Console.WriteLine("users loaded");
+        return users ?? [];
+      }
+      catch (Exception e)
+      {
+        Console.WriteLine("An error occured while loading the library");
+        Console.WriteLine(e.Message);
+        return [];
+      }
+    }
+
+    /// <summary>
+    /// This method displays the authentication menu
+    /// </summary>
+    public static void DisplayAuthenticationMenu()
+    {
+      Console.WriteLine("1. Login");
+      Console.WriteLine("2. Register");
+    }
+
+    /// <summary>
+    /// This method gets the authentication option from the user input
+    /// </summary>
+    /// <returns></returns>
+    public static int GetAuthenticationOptionFromUserInput()
+    {
+      bool ValidAuthenticationOption = false;
+      string input;
+      int result = 0;
+      while (ValidAuthenticationOption == false)
+      {
+        DisplayAuthenticationMenu();
+        input = Console.ReadLine() ?? string.Empty;
+        if (ValidateAuthenticationOption(input))
+        {
+          break;
+        }
+        result = int.Parse(input);
+      }
+      return result;
+    }
+
+    /// <summary>
+    /// This method validates the authentication option from the user input
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    public static bool ValidateAuthenticationOption(string input)
+    {
+      //TODO: Implement option to login
+      return
+      // input == "1" || 
+      input == "2";
+    }
+
+    /// <summary>
+    /// This method registers a user
+    /// </summary>
+    public static void RegisterUser(User user)
+    {
+      //TODO: check if user already exists
+      Users.Add(user);
+    }
+
+
   }
 }
